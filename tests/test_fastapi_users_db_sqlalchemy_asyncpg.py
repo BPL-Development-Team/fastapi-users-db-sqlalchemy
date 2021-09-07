@@ -3,11 +3,14 @@ from typing import AsyncGenerator
 
 import pytest
 import sqlalchemy
-from databases import Database
 from sqlalchemy import Column, String
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
+from sqlalchemy.orm.session import sessionmaker
 
-from fastapi_users_db_sqlalchemy import (
+from fastapi_users_db_sqlalchemy_asyncpg import (
     NotSetOAuthAccountTableError,
     SQLAlchemyBaseOAuthAccountTable,
     SQLAlchemyBaseUserTable,
@@ -23,20 +26,18 @@ async def sqlalchemy_user_db() -> AsyncGenerator[SQLAlchemyUserDatabase, None]:
     class User(SQLAlchemyBaseUserTable, Base):
         first_name = Column(String, nullable=True)
 
-    DATABASE_URL = "sqlite:///./test-sqlalchemy-user.db"
-    database = Database(DATABASE_URL)
+    DATABASE_URL = "postgresql+asyncpg://postgres:test@localhost:5432/test"
 
-    engine = sqlalchemy.create_engine(
-        DATABASE_URL, connect_args={"check_same_thread": False}
-    )
-    Base.metadata.create_all(engine)
+    engine = create_async_engine(DATABASE_URL)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-    await database.connect()
+    session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-    yield SQLAlchemyUserDatabase(UserDB, database, User.__table__)
+    yield SQLAlchemyUserDatabase(UserDB, session, User.__table__)
 
-    Base.metadata.drop_all(engine)
-    await database.disconnect()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture
@@ -49,21 +50,20 @@ async def sqlalchemy_user_db_oauth() -> AsyncGenerator[SQLAlchemyUserDatabase, N
     class OAuthAccount(SQLAlchemyBaseOAuthAccountTable, Base):
         pass
 
-    DATABASE_URL = "sqlite:///./test-sqlalchemy-user-oauth.db"
-    database = Database(DATABASE_URL)
+    DATABASE_URL = "postgresql+asyncpg://postgres:test@localhost:5432/test"
 
-    engine = sqlalchemy.create_engine(
-        DATABASE_URL, connect_args={"check_same_thread": False}
-    )
-    Base.metadata.create_all(engine)
+    engine = create_async_engine(DATABASE_URL)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-    await database.connect()
+    session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
     yield SQLAlchemyUserDatabase(
-        UserDBOAuth, database, User.__table__, OAuthAccount.__table__
+        UserDBOAuth, session, User.__table__, OAuthAccount.__table__
     )
 
-    Base.metadata.drop_all(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.mark.asyncio
@@ -102,11 +102,11 @@ async def test_queries(sqlalchemy_user_db: SQLAlchemyUserDatabase[UserDB]):
     assert email_user.id == user_db.id
 
     # Exception when inserting existing email
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(IntegrityError):
         await sqlalchemy_user_db.create(user)
 
     # Exception when inserting non-nullable fields
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(IntegrityError):
         wrong_user = UserDB(hashed_password="aaa")
         await sqlalchemy_user_db.create(wrong_user)
 
