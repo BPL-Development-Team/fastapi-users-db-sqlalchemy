@@ -26,7 +26,7 @@
 
 Add quickly a registration and authentication system to your [FastAPI](https://fastapi.tiangolo.com/) project. **FastAPI Users** is designed to be as customizable and adaptable as possible.
 
-**Sub-package for SQLAlchemy + encode/databases support in FastAPI Users.**
+**Sub-package for SQLAlchemy with AsyncPG support in FastAPI Users.**
 
 ## Development
 
