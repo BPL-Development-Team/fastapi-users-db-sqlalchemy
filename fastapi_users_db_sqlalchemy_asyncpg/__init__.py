@@ -64,15 +64,6 @@ class SQLAlchemyBaseUserTable:
     is_superuser = Column(Boolean, default=False, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
 
-    @declared_attr
-    def oauth_accounts(cls):
-        return relationship(
-            "SQLAlchemyBaseOAuthAccountTable",
-            backref="user",
-            cascade="all, delete",
-            passive_deletes=True,
-        )
-
 
 class SQLAlchemyBaseOAuthAccountTable:
     """Base SQLAlchemy OAuth account table definition."""
