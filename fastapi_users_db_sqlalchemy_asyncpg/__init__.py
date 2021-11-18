@@ -150,6 +150,17 @@ class SQLAlchemyUserDatabase(BaseUserDatabase[UD]):
                 user = result.first()
                 return await self._make_user(user) if user else None
         raise NotSetOAuthAccountTableError()
+    
+    
+    async def get_by_id(self, id: str) -> Optional[UD]:
+        if self.oauth_accounts is not None:
+            async with self.session.begin() as session:
+                query = (
+                    select([self.users]).select_from(self.users.join(self.oauth_accounts)).where(self.users.c.id == id)
+                )
+                result = await session.execute(query)
+                user = result.first()
+                return await self._make_user(user) if user else None
 
     async def create(self, user: UD) -> UD:
         user_dict = user.dict()
