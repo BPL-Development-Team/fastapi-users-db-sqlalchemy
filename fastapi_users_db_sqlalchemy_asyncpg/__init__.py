@@ -156,7 +156,7 @@ class SQLAlchemyUserDatabase(BaseUserDatabase[UD]):
         if self.oauth_accounts is not None:
             async with self.session.begin() as session:
                 query = (
-                    select([self.users]).select_from(self.users.join(self.oauth_accounts)).where(self.users.c.id == id)
+                    select(self.users).select_from(self.users.join(self.oauth_accounts)).where(self.users.c.id == id)
                 )
                 result = await session.execute(query)
                 user = result.first()
