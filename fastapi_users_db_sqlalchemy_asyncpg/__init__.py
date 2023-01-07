@@ -229,7 +229,7 @@ class SQLAlchemyUserDatabase(BaseUserDatabase[UD]):
 
         if self.oauth_accounts is not None:
             query = self.oauth_accounts.select().where(
-                self.oauth_accounts.c.user_id == user["id"]
+                self.oauth_accounts.c.user_id == user._mapping["id"]
             )
             async with self.session.begin() as session:
                 result = await session.execute(query)
