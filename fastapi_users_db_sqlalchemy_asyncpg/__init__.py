@@ -222,10 +222,7 @@ class SQLAlchemyUserDatabase(BaseUserDatabase[UD]):
             await session.execute(query)
 
     async def _make_user(self, user: Mapping) -> UD:
-        if hasattr(user, '_mapping'):
-            user_dict = {**user._mapping}
-        else:
-            user_dict = {**user}
+        user_dict = {**user._mapping}
 
         if self.oauth_accounts is not None:
             query = self.oauth_accounts.select().where(
@@ -234,6 +231,6 @@ class SQLAlchemyUserDatabase(BaseUserDatabase[UD]):
             async with self.session.begin() as session:
                 result = await session.execute(query)
                 oauth_accounts = result.all()
-            user_dict["oauth_accounts"] = [{**a} for a in oauth_accounts]
+            user_dict["oauth_accounts"] = [{**a._mapping} for a in oauth_accounts]
 
         return self.user_db_model(**user_dict)
