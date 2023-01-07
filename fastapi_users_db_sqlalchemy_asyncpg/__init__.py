@@ -141,7 +141,7 @@ class SQLAlchemyUserDatabase(BaseUserDatabase[UD]):
         if self.oauth_accounts is not None:
             async with self.session.begin() as session:
                 query = (
-                    select([self.users])
+                    select(self.users)
                     .select_from(self.users.join(self.oauth_accounts))
                     .where(self.oauth_accounts.c.oauth_name == oauth)
                     .where(self.oauth_accounts.c.account_id == account_id)
